@@ -103,16 +103,6 @@ main{padding:26px 0 90px}
 .tbar{height:14px;border:3px solid var(--ink);border-radius:999px;background:#fff;overflow:hidden;margin-bottom:14px}
 .tbar span{display:block;height:100%;width:100%;background:var(--water)}
 .tbar.low span{background:var(--stamp)}
-.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
-.opts .btn{min-height:58px;font-size:1.25rem}
-.btn.right{background:#bff0d9!important}
-.btn.wrong{background:#ffd0d4!important}
-.tankbox{max-width:420px;margin:0 auto 12px}
-.tankbox svg{width:100%;height:auto;display:block}
-.specs{margin:6px 0 0;text-align:center;font-weight:700;color:var(--tea-deep);font-size:.95rem}
-.qbox+.row2{margin-top:14px}
-.qbox{border:3px solid var(--ink);border-radius:14px;background:#fff;padding:14px 16px;text-align:center;font-weight:800;font-size:clamp(1.05rem,3.4vw,1.35rem);line-height:1.5;margin-top:6px}
-@media(min-width:720px){.grid .mcard:last-child:nth-child(odd){grid-column:1/-1}}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .row2 .btn{min-height:62px;font-size:1.4rem}
 .stamp{display:inline-block;border:4px solid;border-radius:10px;padding:.1rem .8rem;font:900 1.6rem var(--f-body);transform:rotate(-6deg);animation:stampIn .3s cubic-bezier(.2,1.6,.4,1);background:#fff}
@@ -192,12 +182,12 @@ canvas{display:block;width:100%;height:auto;touch-action:none;cursor:ew-resize}
       <button class="btn snd" id="soundBtn" type="button" aria-pressed="true">聲音：開</button>
       <span class="namebox"><label for="name">玩家姓名</label>
       <input id="name" maxlength="12" placeholder="寫上你的名字" autocomplete="off"></span>
-      <span class="pill" id="starTotal">0 / 15 星</span>
+      <span class="pill" id="starTotal">0 / 12 星</span>
     </div>
   </div>
   <div class="wrap hero" id="hero">
     <h1>歡迎來到容量體積大挑戰</h1>
-    <p class="lead">玩完五個小遊戲，鞏固今堂學的容量與體積。</p>
+    <p class="lead">玩完四個小遊戲，鞏固今堂學的容量與體積。</p>
     <p class="note-light">先記住這四個關係：</p>
     <div class="bubbles">
       <div class="bubble">容量 = 容器內部空間能盛載的物件的體積</div>
@@ -213,7 +203,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none;cursor:ew-resize}
 <main class="wrap">
   <section id="hub">
     <h2 class="sec-title">選一個遊戲</h2>
-    <p class="sec-sub">五個遊戲不用按次序玩。每個遊戲最多 3 顆星，集齊五個遊戲可以領取容量體積大挑戰證書。</p>
+    <p class="sec-sub">四個遊戲不用按次序玩。每個遊戲最多 3 顆星，集齊四個遊戲可以領取容量體積大挑戰證書。</p>
     <div class="grid" id="missionGrid"></div>
     <div id="certHost"></div>
     <div class="reset" id="resetBox"></div>
@@ -231,7 +221,6 @@ canvas{display:block;width:100%;height:auto;touch-action:none;cursor:ew-resize}
     <li>1000 mL = 1000 cm³</li>
     <li>1 L = 1000 mL = 1000 cm³</li>
     <li>單位改變，水的多少不變</li>
-    <li>容器有厚度時，要用內部的長、闊、高計算容量</li>
   </ul>
 </aside>
 
@@ -248,7 +237,7 @@ const hearts = n => '♥'.repeat(Math.max(0, n)) + '♡'.repeat(Math.max(0, 3 - 
 const UNITS = { c: 'cm³', m: 'mL', l: 'L' };
 const repText = (u, ml) => `${fmt(u === 'l' ? ml / 1000 : ml)} ${UNITS[u]}`;   // amount (in mL / cm³ numbers) written in unit u
 
-let S = { name: '', stars: { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0 } };
+let S = { name: '', stars: { m1: 0, m2: 0, m3: 0, m4: 0 } };
 function save() { try { localStorage.setItem('capacity-bar2', JSON.stringify(S)); } catch (e) {} }
 function load() { try { const d = JSON.parse(localStorage.getItem('capacity-bar2') || 'null'); if (d) S = { ...S, ...d, stars: { ...S.stars, ...(d.stars || {}) } }; } catch (e) {} }
 let cleanup = null;
@@ -645,104 +634,12 @@ function m4(host, finish) {
   show();
 }
 
-/* =====================================================
-   Game 5: extension problems (inner size of a tank with thick walls)
-   ===================================================== */
-const INNER_A = [[8, 5, 4], [10, 6, 5], [12, 5, 5], [10, 10, 5], [15, 8, 5], [20, 10, 5], [20, 12, 5], [25, 10, 8], [18, 10, 10], [16, 9, 6]];
-const INNER_B = [[12, 10, 10], [20, 12, 5], [18, 10, 10], [25, 12, 8], [20, 20, 8], [30, 15, 10], [16, 15, 10]];
-function tankSVG(L, W, H, t, lid) {
-  const s = Math.min(175 / (L + 0.45 * W), 104 / (H + 0.3 * W)), X = 92, Y = 30;
-  const P = (u, v, z) => [X + u * s + v * 0.45 * s, Y + 0.3 * W * s + (H - z) * s - v * 0.3 * s];
-  const pt = (u, v, z) => P(u, v, z).map(n => n.toFixed(1)).join(',');
-  const poly = (pts, attr) => `<polygon points="${pts.map(a => pt(...a)).join(' ')}" ${attr}/>`;
-  const td = Math.max(t, 6 / s);   // drawn a little thicker than real so it can be seen
-  const a = td, b = L - td, c = td, d = W - td, z0 = td, z1 = lid ? H - td : H;           // inner space
-  const GL = 'fill="#8fcfe6" fill-opacity=".5" stroke="#12332a" stroke-width="2.2" stroke-linejoin="round"';
-  let g = '';
-  // inside faces (back wall, left wall, floor) seen through the glass
-  g += poly([[a, d, z0], [b, d, z0], [b, d, z1], [a, d, z1]], 'fill="#ffffff"');
-  g += poly([[a, c, z0], [a, d, z0], [a, d, z1], [a, c, z1]], 'fill="#e4f2f7"');
-  g += poly([[a, c, z0], [b, c, z0], [b, d, z0], [a, d, z0]], 'fill="#cfe9f3"');
-  // outer glass faces
-  g += poly([[0, 0, 0], [L, 0, 0], [L, 0, H], [0, 0, H]], GL);
-  g += poly([[L, 0, 0], [L, W, 0], [L, W, H], [L, 0, H]], GL);
-  if (lid) g += poly([[0, 0, H], [L, 0, H], [L, W, H], [0, W, H]], GL);
-  else g += `<path fill-rule="evenodd" d="M${pt(0, 0, H)} L${pt(L, 0, H)} L${pt(L, W, H)} L${pt(0, W, H)} Z M${pt(a, c, H)} L${pt(b, c, H)} L${pt(b, d, H)} L${pt(a, d, H)} Z" ${GL}/>`;
-  // inner space outline (dashed) so students see the hollow part
-  g += `<path d="M${pt(a, c, z0)} L${pt(b, c, z0)} L${pt(b, c, z1)} L${pt(a, c, z1)} Z M${pt(b, c, z0)} L${pt(b, d, z0)} L${pt(b, d, z1)} L${pt(b, c, z1)}${lid ? ` M${pt(a, c, z1)} L${pt(a, d, z1)} L${pt(b, d, z1)}` : ''}" fill="none" stroke="#12332a" stroke-width="1.4" stroke-dasharray="4 3" opacity=".6"/>`;
-  const tip = P(td / 2, W / 2, H), bx = X + 4, by = 13;
-  const lab = (x, y, anchor, txt) => `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}">${txt}</text>`;
-  const bl = P(L / 2, 0, 0), lf = P(0, 0, H / 2), rb = P(L, W / 2, 0);
-  g += `<line x1="${bx + 30}" y1="${by + 4}" x2="${tip[0].toFixed(1)}" y2="${tip[1].toFixed(1)}" stroke="#c8372d" stroke-width="1.6"/><circle cx="${tip[0].toFixed(1)}" cy="${tip[1].toFixed(1)}" r="3.2" fill="#c8372d"/>`;
-  g += `<g font-family="Fredoka,'Noto Sans TC',sans-serif" font-size="13" font-weight="700" fill="#12332a">` +
-    lab(bl[0], bl[1] + 20, 'middle', `外面長 ${L} cm`) + lab(lf[0] - 8, lf[1] + 4, 'end', `外面高 ${H} cm`) + lab(rb[0] + 8, rb[1] + 18, 'start', `外面闊 ${W} cm`) +
-    `<text x="${bx}" y="${by}" fill="#c8372d">玻璃厚 ${t} cm</text></g>`;
-  const hh = (Y + 0.3 * W * s + H * s + 34).toFixed(1);
-  return `<svg viewBox="0 0 350 ${hh}" role="img" aria-label="水箱：外面長 ${L} cm、闊 ${W} cm、高 ${H} cm，玻璃厚 ${t} cm${lid ? '，有蓋' : '，沒有蓋'}">${g}</svg>`;
-}
-function genOrder(kind) {
-  const t = kind === 'closed' ? 1 : pick([1, 1, 2]);
-  const inner = pick(kind === 'fit' || kind === 'over' ? INNER_B : INNER_A);
-  const lid = kind === 'closed', [l, w, h] = inner;
-  const L = l + 2 * t, W = w + 2 * t, H = h + (lid ? 2 : 1) * t, cap = l * w * h;
-  const o = { kind, t, lid, L, W, H, l, w, h, cap };
-  const work = `內部長 = ${L} − ${t} × 2 = ${l} cm，內部闊 = ${W} − ${t} × 2 = ${w} cm，內部高 = ${H} − ${t}${lid ? ' × 2' : ''} = ${h} cm。` +
-    `容量 = ${l} × ${w} × ${h} = ${cap} cm³ = ${cap} mL。`;
-  if (kind === 'fit' || kind === 'over') {
-    const base = Math.floor(cap / 1000), amt = kind === 'fit' ? base : base + 1;
-    o.amt = amt; o.ok = kind === 'fit' ? 1 : 0;
-    o.q = `水箱沒有蓋。倒入 ${amt} L 的水，水會溢出來嗎？`;
-    o.why = `${work} ${amt} L = ${amt * 1000} mL，${kind === 'fit' ? `${amt * 1000} < ${cap}，水不會溢出，水箱裝得下。` : `${amt * 1000} > ${cap}，水箱裝不下，水會溢出來。`}`;
-    return o;
-  }
-  const wrongs = lid ? [L * W * H, l * w * H, l * w * (H - t)] : [L * W * H, l * w * H, l * w * (H - 2 * t)];
-  const opts = [cap, ...wrongs];
-  if (new Set(opts).size < 4) return genOrder(kind);
-  o.q = `這個水箱${lid ? '有蓋，蓋也有厚度。' : '沒有蓋。'}它的容量是多少 mL？`;
-  o.opts = shuffle(opts); o.ans = cap; o.why = work;
-  return o;
-}
-function m5(host, finish) {
-  const deck = shuffle(['open', 'open', 'open', 'open', 'fit', 'over']).map(genOrder);
-  let i = 0, lives = 3, right = 0, done = 0, answered = true;
-  cleanup = () => {};
-  host.innerHTML = `<div class="hud"><span id="no"></span><span class="score" id="sc"></span></div>
-    <p class="note" style="margin-bottom:10px">水箱的玻璃有厚度。容量要用<b>內部</b>的長、闊、高來計算，不是外面量到的長、闊、高。</p>
-    <div class="tankbox" id="tk"></div><div id="qh"></div><div id="fbh"></div>`;
-  const hud = () => { $('#no', host).textContent = `第 ${Math.min(i + 1, deck.length)} / ${deck.length} 張訂單`; $('#sc', host).textContent = `${hearts(lives)}　答對 ${right} 張`; };
-  function show() {
-    if (i >= deck.length || lives <= 0) return end();
-    const o = deck[i]; answered = false; hud();
-    $('#tk', host).innerHTML = tankSVG(o.L, o.W, o.H, o.t, o.lid) + `<p class="specs">外面長 ${o.L} cm　外面闊 ${o.W} cm　外面高 ${o.H} cm　玻璃厚 ${o.t} cm</p>`;
-    $('#qh', host).innerHTML = `<div class="qbox">${o.q}</div>` + (o.opts
-      ? `<div class="opts">${o.opts.map(v => `<button class="btn ghost" type="button" data-v="${v}">${v} mL</button>`).join('')}</div>`
-      : `<div class="row2"><button class="btn good" type="button" data-v="1">不會溢出</button><button class="btn bad" type="button" data-v="0">會溢出</button></div>`);
-    $('#fbh', host).innerHTML = '';
-    host.querySelectorAll('#qh .btn').forEach(b => b.addEventListener('click', () => answer(b)));
-  }
-  function answer(b) {
-    if (answered) return; answered = true; done++;
-    const o = deck[i], v = +b.dataset.v, ok = o.opts ? v === o.ans : v === o.ok;
-    host.querySelectorAll('#qh .btn').forEach(x => { x.disabled = true; if (o.opts ? +x.dataset.v === o.ans : +x.dataset.v === o.ok) x.classList.add('right'); });
-    if (ok) { right++; SFX.ok(); } else { lives--; b.classList.add('wrong'); SFX.bad(); }
-    $('#fbh', host).innerHTML = `<div class="explain"><b>${ok ? '答對了！' : '答錯了。'}</b> ${o.why}</div>
-      <div class="after"><button class="btn" id="nx" type="button">${i === deck.length - 1 || lives <= 0 ? '查看成績' : '下一張訂單'}</button></div>`;
-    $('#nx', host).addEventListener('click', () => { i++; show(); }); $('#nx', host).focus({ preventScroll: true });
-    hud();
-  }
-  function end() {
-    finish({ stars: right >= 5 ? 3 : right >= 3 ? 2 : 1, line: `${done} 張訂單，答對 ${right} 張。\n` + (right >= 5 ? '你懂得量內部尺寸，是水箱工程師！' : '提醒：要用內部的長、闊、高計算容量，玻璃的厚度要減去。') });
-  }
-  show();
-}
-
 /* ---------- hub & stage ---------- */
 const MISSIONS = [
   { key: 'm1', no: 1, name: '翻牌配對', sub: '翻牌找出水量相等的一對，例如 3 L 和 3000 mL', time: '約 3 分鐘', run: m1 },
   { key: 'm2', no: 2, name: '水滴接接樂', sub: '移動量杯，接住和目標相等的水滴，接錯會失去一顆心', time: '約 3 分鐘', run: m2 },
   { key: 'm3', no: 3, name: '水龍頭配對', sub: '算出每個盒子的容量，把剛好盛滿它的水壺倒進去', time: '約 4 分鐘', run: m3 },
-  { key: 'm4', no: 4, name: '驗貨快手', sub: '限時判斷卡片上的說法是真還是假，連擊得高分', time: '約 4 分鐘', run: m4 },
-  { key: 'm5', no: 5, name: '延伸活動', sub: '水箱的玻璃有厚度，量出內部的長、闊、高，再算容量', time: '約 3 分鐘', run: m5 }
+  { key: 'm4', no: 4, name: '驗貨快手', sub: '限時判斷卡片上的說法是真還是假，連擊得高分', time: '約 4 分鐘', run: m4 }
 ];
 const hub = $('#hub'), stage = $('#stage');
 
@@ -757,12 +654,12 @@ function renderHub() {
       <button class="btn go" type="button" data-k="${k}">${S.stars[m.key] ? '再玩一次' : '開始遊戲'}</button>
     </article>`).join('');
   document.querySelectorAll('.go').forEach(b => b.addEventListener('click', () => openMission(+b.dataset.k)));
-  const total = Object.values(S.stars).reduce((a, b) => a + b, 0);
-  $('#starTotal').textContent = `${total} / 15 星`;
+  const total = MISSIONS.reduce((a, m) => a + (S.stars[m.key] || 0), 0);
+  $('#starTotal').textContent = `${total} / 12 星`;
   const all = MISSIONS.every(m => S.stars[m.key] > 0);
-  const rank = total >= 14 ? '金牌' : total >= 10 ? '銀牌' : '銅牌';
+  const rank = total >= 11 ? '金獎' : total >= 8 ? '銀獎' : '銅獎';
   const date = new Date().toLocaleDateString('zh-HK', { year: 'numeric', month: 'long', day: 'numeric' });
-  $('#certHost').innerHTML = all ? `<div class="card cert"><p class="note">容量體積大挑戰證書</p><p class="rank">${rank}</p><p class="nm">${S.name ? S.name.replace(/</g, '&lt;') : '（請在上方寫上姓名）'}</p><p class="st">${total} / 15 星</p><p class="note">${date}　已完成全部五個遊戲</p></div>` : '';
+  $('#certHost').innerHTML = all ? `<div class="card cert"><p class="note">容量體積大挑戰證書</p><p class="rank">${rank}</p><p class="nm">${S.name ? S.name.replace(/</g, '&lt;') : '（請在上方寫上姓名）'}</p><p class="st">${total} / 12 星</p><p class="note">${date}　已完成全部四個遊戲</p></div>` : '';
 }
 function goHub() { leave(); document.body.classList.remove('playing'); stage.hidden = true; hub.hidden = false; $('#hero').hidden = false; renderHub(); }
 
@@ -799,7 +696,7 @@ function bindReset() {
     box.innerHTML = '<p>確定重新開始？星數和姓名都會清除。</p><button class="btn" id="yes" type="button">確定重新開始</button><button class="btn ghost" id="no" type="button">取消</button>';
     $('#no').addEventListener('click', bindReset);
     $('#yes').addEventListener('click', () => {
-      S = { name: '', stars: { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0 } }; save();
+      S = { name: '', stars: { m1: 0, m2: 0, m3: 0, m4: 0 } }; save();
       $('#name').value = '';
       renderHub(); bindReset();
     });
